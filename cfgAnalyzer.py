@@ -31,13 +31,30 @@ def mul_parity(a, b):
         return Parity.EVEN
     else:
         return Parity.UNKNOWN
+    
+def try_int(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+def try_parity(var):
+    if try_int(var):
+        if int(var) % 2 == 0:
+            return Parity.EVEN
+        else:
+            return Parity.ODD
+    else:
+        return Parity.UNKNOWN
 
 class ParityAnalyzer:
     def __init__(self):
         self.dict = {}
 
-    def add_var(self, var):
-        self.dict[var] = Parity.UNKNOWN
+    def add_var(self, node):
+        s = node.split(' = ')
+        self.dict[s[0]] = try_parity(s[1])
 
     def visit(self, node):
         if '+' in node:
@@ -46,8 +63,8 @@ class ParityAnalyzer:
             left_var = match_plus.group(1)
             right_var = match_plus.group(2)
             result_state = add_parity(
-                self.dict.get(left_var, Parity.UNKNOWN),
-                self.dict.get(right_var, Parity.UNKNOWN)
+                self.dict.get(left_var, try_parity(left_var)),
+                self.dict.get(right_var, try_parity(right_var))
             )
             self.dict[node.split(' = ')[0]] = result_state
 
@@ -57,8 +74,8 @@ class ParityAnalyzer:
             left_var = match_multiply.group(1)
             right_var = match_multiply.group(2)
             result_state = mul_parity(
-                self.dict.get(left_var, Parity.UNKNOWN),
-                self.dict.get(right_var, Parity.UNKNOWN)
+                self.dict.get(left_var, try_parity(left_var)),
+                self.dict.get(right_var, try_parity(right_var))
             )
             self.dict[node.split(' = ')[0]] = result_state
 
@@ -88,8 +105,7 @@ for node in g.nodes():
     label = node.attr['label']
     label = label[3:]
     if ' = ' in label:
-        s = label.split(' = ')
-        analyzer.add_var(s[0])
+        analyzer.add_var(label)
 
 for node in g.nodes():
     label = node.attr['label']
