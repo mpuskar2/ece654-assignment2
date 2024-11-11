@@ -1,5 +1,6 @@
 import unittest
-from cfgAnalyzer import Parity, add_parity, mul_parity, try_int, try_parity, ParityAnalyzer
+from unittest.mock import MagicMock, patch
+from cfgAnalyzer import Parity, add_parity, mul_parity, try_int, try_parity, ParityAnalyzer, run_analysis, PyCFG, CFGNode
 
 class TestCFGAnalyzer(unittest.TestCase):
     
@@ -59,6 +60,52 @@ class TestCFGAnalyzer(unittest.TestCase):
 
         analyzer.visit("z = z * 3")
         self.assertEqual(analyzer.dict["z"], Parity.EVEN)
+
+    def test_code1(self):
+        # Sample code
+        source_code = """
+x = 2
+y = 3
+z = x + y
+if z % 2 == 0:
+    z = z * 2
+else:
+    z = z * 3
+"""
+        cfg = PyCFG()
+        cfg.gen_cfg(source_code)
+        g = CFGNode.to_graph() 
+        g.draw('cfg.png', prog ='dot') # draw the cfg
+        analyzer = ParityAnalyzer()
+
+        for node in g.nodes():
+            label = node.attr['label']
+            label = label[3:]
+            if ' = ' in label:
+                analyzer.add_var(label)
+
+        for node in g.nodes():
+            label = node.attr['label']
+            label = label[3:]
+            analyzer.visit(label)
+        
+        self.assertEqual(analyzer.dict["x"], Parity.EVEN)
+        self.assertEqual(analyzer.dict["y"], Parity.ODD)
+        self.assertEqual(analyzer.dict["z"], Parity.ODD)
+
+    def test_parity_update_after_reassign(self):
+        # Test code where variables are re-assigned
+        analyzer = ParityAnalyzer()
+        analyzer.add_var("x = 2")
+        analyzer.add_var("y = 3")
+        
+        analyzer.visit("z = x + y")
+        self.assertEqual(analyzer.dict["z"], Parity.ODD)
+        
+        analyzer.add_var("z = 4")
+        analyzer.visit("z = z * 3")
+        self.assertEqual(analyzer.dict["z"], Parity.EVEN)
+
 
 if __name__ == '__main__':
     unittest.main()

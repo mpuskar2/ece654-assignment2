@@ -84,6 +84,25 @@ class ParityAnalyzer:
             state = self.dict.get(var, Parity.UNKNOWN)
             print(f"Variable {var}: {state}")
 
+
+def run_analysis(code):
+    cfg = PyCFG()
+    cfg.gen_cfg(code)
+    g = CFGNode.to_graph() 
+    g.draw('cfg.png', prog ='dot') # draw the cfg
+    analyzer = ParityAnalyzer()
+    print(g)
+    for node in g.nodes():
+        label = node.attr['label']
+        label = label[3:]
+        if ' = ' in label:
+            analyzer.add_var(label)
+
+    for node in g.nodes():
+        label = node.attr['label']
+        label = label[3:]
+        analyzer.visit(label)
+
 # Sample code
 source_code = """
 x = 2
@@ -94,20 +113,4 @@ if z % 2 == 0:
 else:
     z = z * 3
 """
-
-cfg = PyCFG()
-cfg.gen_cfg(source_code)
-g = CFGNode.to_graph() 
-g.draw('t.png', prog ='dot')
-analyzer = ParityAnalyzer()
-
-for node in g.nodes():
-    label = node.attr['label']
-    label = label[3:]
-    if ' = ' in label:
-        analyzer.add_var(label)
-
-for node in g.nodes():
-    label = node.attr['label']
-    label = label[3:]
-    analyzer.visit(label)
+run_analysis(source_code)
