@@ -21,7 +21,7 @@ def add_parity(a, b):
         return Parity.UNKNOWN
 
 def mul_parity(a, b):
-    if a == Parity.EVEN or b == Parity.EVEN:
+    if a == Parity.EVEN and b == Parity.EVEN:
         return Parity.EVEN
     elif a == Parity.ODD and b == Parity.ODD:
         return Parity.ODD
