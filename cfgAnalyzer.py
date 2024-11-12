@@ -10,7 +10,11 @@ class Parity:
 
 # Define abstract operations for addition and multiplication
 def add_parity(a, b):
-    if a == Parity.EVEN and b == Parity.EVEN:
+    if a == Parity.UNKNOWN or b == Parity.UNKNOWN:
+        return Parity.UNKNOWN
+    elif a == Parity.BOTH or b == Parity.BOTH:
+        return Parity.BOTH
+    elif a == Parity.EVEN and b == Parity.EVEN:
         return Parity.EVEN
     elif a == Parity.ODD and b == Parity.ODD:
         return Parity.EVEN
@@ -22,7 +26,11 @@ def add_parity(a, b):
         return Parity.UNKNOWN
 
 def mul_parity(a, b):
-    if a == Parity.EVEN and b == Parity.EVEN:
+    if a == Parity.UNKNOWN or b == Parity.UNKNOWN:
+        return Parity.UNKNOWN
+    elif a == Parity.BOTH or b == Parity.BOTH:
+        return Parity.BOTH
+    elif a == Parity.EVEN and b == Parity.EVEN:
         return Parity.EVEN
     elif a == Parity.ODD and b == Parity.ODD:
         return Parity.ODD
@@ -83,7 +91,7 @@ class ParityAnalyzer:
 
     def add_var(self, node):
         s = node.split(' = ')
-        self.dict[s[0]] = try_parity(s[1])
+        self.dict[s[0]] = Parity.UNKNOWN
 
     def visit(self, code, node):
         index = None
@@ -93,6 +101,16 @@ class ParityAnalyzer:
                 self.temp_sets.insert(i, self.dict.copy())
                 index = i
                 branch = True
+
+        if node in self.merge_nodes:
+            for key in self.dict.keys():
+                merged_value = self.temp_sets[0][key]
+                for temp_set in self.temp_sets[1:]:
+                    merged_value = merge_parities(merged_value, temp_set[key])
+                self.dict[key] = merged_value
+
+            self.remove_mnode(node)
+            self.temp_sets = []
 
         if '+' in code:
             pattern_plus = r'(\w+)\s*\+\s*(\w+)'
@@ -129,16 +147,9 @@ class ParityAnalyzer:
                     self.temp_sets[index].get(right_var, try_parity(right_var))
                 )
                 self.temp_sets[index][code.split(' = ')[0]] = result_state
-
-        if node in self.merge_nodes:
-            for key in self.dict.keys():
-                merged_value = self.temp_sets[0][key]
-                for temp_set in self.temp_sets[1:]:
-                    merged_value = merge_parities(merged_value, temp_set[key])
-                self.dict[key] = merged_value
-
-            self.remove_mnode(node)
-            self.temp_sets = []
+        elif ' = ' in code:
+            s = code.split(' = ')
+            self.dict[s[0]] = try_parity(s[1])
 
         print(f"Node {node}: {code}")
         if not branch:
@@ -151,16 +162,17 @@ class ParityAnalyzer:
                 print(f"Variable in branch {var}: {state}")            
 
 
-def run_analysis(code):
+def run_analysis(code, analyzer):
     cfg = PyCFG()
     cfg.gen_cfg(code)
     g = CFGNode.to_graph() 
     g.draw('cfg.png', prog ='dot') # draw the cfg
-    analyzer = ParityAnalyzer()
     
     for node in g.nodes():
         label = node.attr['label']
-        label = label[3:]
+        split = label.find(': ')
+        label = label[split + 2:].strip()
+
         if len(g.out_edges(node)) > 1:
             for target in g.successors(node):
                 analyzer.add_branch(target)
@@ -187,4 +199,5 @@ if z % 2 == 0:
 else:
     z = z * 3
 """
-run_analysis(source_code)
+analyzer = ParityAnalyzer()
+run_analysis(source_code, analyzer)
