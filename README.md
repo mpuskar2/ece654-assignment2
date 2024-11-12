@@ -12,6 +12,10 @@
 * The test file is run with python 3.10 as this is the version I have installed locally
 * Installs pip dependencies and required apt libraries
 
+## NOTE
+* pip dependency pygraphviz will not install without first running the command:
+  * sudo apt install -y python3-dev graphviz libgraphviz-dev pkg-config
+
 ## Sample output
 * For the code:
 ```
